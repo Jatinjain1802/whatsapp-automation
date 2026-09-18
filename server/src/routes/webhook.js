@@ -1,4 +1,4 @@
-import { Router, raw } from 'express';
+import { Router } from 'express';
 import crypto from 'crypto';
 import { config } from '../config.js';
 import { Message, Contact, Suppression, Campaign } from '../models.js';
@@ -28,34 +28,85 @@ function verifySignature(req) {
 }
 
 // POST: delivery status updates + inbound messages (STOP handling).
+// Meta expects a fast ack and batches many statuses per POST, so we ack first
+// and then process the whole batch with a handful of bulk queries instead of
+// one find+save per status.
 router.post('/', async (req, res) => {
   if (!verifySignature(req)) return res.sendStatus(401);
   res.sendStatus(200); // ack immediately; process after
 
   try {
     const entries = req.body?.entry || [];
+    const statuses = [];
+    const inbound = [];
     for (const entry of entries) {
       for (const change of entry.changes || []) {
         const value = change.value || {};
-
-        for (const status of value.statuses || []) {
-          await applyStatus(status);
-        }
-        for (const message of value.messages || []) {
-          await applyInbound(message);
-        }
+        for (const status of value.statuses || []) statuses.push(status);
+        for (const message of value.messages || []) inbound.push(message);
       }
     }
+    if (statuses.length) await applyStatusBatch(statuses);
+    for (const message of inbound) await applyInbound(message);
   } catch (err) {
     console.error('[webhook] processing error', err);
   }
 });
 
-async function applyStatus(status) {
-  const doc = await Message.findOne({ metaMessageId: status.id });
-  if (!doc) return;
-  const now = new Date(Number(status.timestamp) * 1000);
+// Status is monotonic per message: never downgrade read -> delivered -> sent.
+// "failed" is terminal and always allowed to overwrite.
+const RANK = { queued: 0, skipped: 0, sent: 1, delivered: 2, read: 3, failed: 9 };
 
+async function applyStatusBatch(statuses) {
+  // If Meta re-delivers or batches several updates for one wamid, only the
+  // highest-rank (or failed) transition is applied.
+  const latest = new Map();
+  for (const status of statuses) {
+    const prev = latest.get(status.id);
+    if (!prev || (RANK[status.status] ?? -1) > (RANK[prev.status] ?? -1) || status.status === 'failed') {
+      latest.set(status.id, status);
+    }
+  }
+
+  const docs = await Message.find({ metaMessageId: { $in: [...latest.keys()] } }).select('_id campaign status metaMessageId');
+  if (!docs.length) return;
+
+  const messageOps = [];
+  const campaignIncrements = new Map(); // `${campaignId}:${field}` -> count
+
+  for (const doc of docs) {
+    const status = latest.get(doc.metaMessageId ?? '');
+    if (!status) continue;
+    const update = buildTransition(status);
+    if (!update) continue;
+    // Skip downgrades (duplicate/out-of-order webhook events) - and a skipped
+    // downgrade is never counted, so campaign stats stay exact.
+    if (RANK[update.status] <= RANK[doc.status] && update.status !== 'failed') continue;
+
+    messageOps.push({ updateOne: { filter: { _id: doc._id }, update: { $set: update } } });
+    const field = { sent: 'sent', delivered: 'delivered', read: 'read', failed: 'failed' }[update.status];
+    if (field && doc.campaign) {
+      const key = `${doc.campaign}:${field}`;
+      campaignIncrements.set(key, (campaignIncrements.get(key) || 0) + 1);
+    }
+  }
+
+  if (messageOps.length) await Message.bulkWrite(messageOps, { ordered: false });
+  if (campaignIncrements.size) {
+    await Campaign.bulkWrite(
+      [...campaignIncrements.entries()].map(([key, count]) => {
+        const [campaignId, field] = key.split(':');
+        return {
+          updateOne: { filter: { _id: campaignId }, update: { $inc: { [`stats.${field}`]: count } } },
+        };
+      }),
+      { ordered: false }
+    );
+  }
+}
+
+function buildTransition(status) {
+  const now = new Date(Number(status.timestamp) * 1000);
   const transitions = {
     sent: { status: 'sent', sentAt: now },
     delivered: { status: 'delivered', deliveredAt: now },
@@ -66,19 +117,7 @@ async function applyStatus(status) {
       errorMessage: status.errors?.[0]?.title || '',
     },
   };
-  const update = transitions[status.status];
-  if (!update) return;
-
-  // Status is monotonic: never downgrade read -> delivered -> sent.
-  const rank = { queued: 0, skipped: 0, failed: 9, sent: 1, delivered: 2, read: 3 };
-  if (rank[update.status] <= rank[doc.status] && update.status !== 'failed') return;
-
-  Object.assign(doc, update);
-  await doc.save();
-  if (doc.campaign) {
-    const field = { sent: 'sent', delivered: 'delivered', read: 'read', failed: 'failed' }[update.status];
-    if (field) await Campaign.updateOne({ _id: doc.campaign }, { $inc: { [`stats.${field}`]: 1 } });
-  }
+  return transitions[status.status] || null;
 }
 
 const OPT_OUT_WORDS = new Set(['stop', 'unsubscribe', 'cancel', 'end', 'quit']);

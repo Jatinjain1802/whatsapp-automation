@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { Campaign, Message, Template, Group } from '../models.js';
+import { Campaign, Message, Template, Group, Contact } from '../models.js';
 import { buildRecipientSnapshot, confirmAndEnqueue, refreshCampaignStatus } from '../services/campaignService.js';
+import { resolvePath } from '../services/templateParams.js';
 
 const router = Router();
 
@@ -41,14 +42,12 @@ router.get('/:id/preview', async (req, res) => {
   if (!campaign) return res.status(404).json({ error: 'not found' });
   const snapshot = await buildRecipientSnapshot(campaign);
 
-  const sampleContact = await (await import('../models.js')).Contact.findOne({ _id: snapshot.eligible[0] }).lean();
+  const sampleContact = await Contact.findOne({ _id: snapshot.eligible[0] }).lean();
   let sampleBody = campaign.template.bodyText;
   if (sampleContact) {
-    for (const [key, path] of Object.entries(campaign.variableMapping || {})) {
-      const value = path.startsWith('customFields.')
-        ? sampleContact.customFields?.[path.slice(13)]
-        : sampleContact[path];
-      sampleBody = sampleBody.replaceAll(`{{${key}}}`, String(value ?? ''));
+    for (const [key, path] of campaign.variableMapping || []) {
+      // Mongoose Maps iterate as [key, value] pairs.
+      sampleBody = sampleBody.replaceAll(`{{${key}}}`, String(resolvePath(sampleContact, path) ?? ''));
     }
   }
   res.json({
@@ -60,12 +59,17 @@ router.get('/:id/preview', async (req, res) => {
   });
 });
 
-// Confirm and start sending. This is the only endpoint that enqueues jobs.
-router.post('/:id/send', async (req, res) => {
-  const campaign = await Campaign.findOne({ _id: req.params.id, business: req.user.business });
-  if (!campaign) return res.status(404).json({ error: 'not found' });
-  const updated = await confirmAndEnqueue(campaign._id);
-  res.json(updated);
+// Confirm and start sending. Returns immediately after stamping the campaign
+// "queuing"; the background prepare job creates rows + queue jobs in bulk.
+router.post('/:id/send', async (req, res, next) => {
+  try {
+    const campaign = await Campaign.findOne({ _id: req.params.id, business: req.user.business });
+    if (!campaign) return res.status(404).json({ error: 'not found' });
+    const updated = await confirmAndEnqueue(campaign._id);
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.get('/:id', async (req, res) => {
@@ -73,6 +77,8 @@ router.get('/:id', async (req, res) => {
     .populate('group template', 'name category status')
     .lean();
   if (!campaign) return res.status(404).json({ error: 'not found' });
+  // Serving a read recomputes stats from the messages collection, so the
+  // report page always converges to the truth even if a webhook was missed.
   await refreshCampaignStatus(campaign._id);
   res.json(campaign);
 });

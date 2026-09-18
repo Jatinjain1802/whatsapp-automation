@@ -96,7 +96,7 @@ export default function Dashboard() {
 export function StatusBadge({ status }) {
   const color = {
     APPROVED: 'green', completed: 'green', opted_in: 'green',
-    PENDING: 'yellow', sending: 'yellow', scheduled: 'yellow', unknown: 'yellow',
+    PENDING: 'yellow', sending: 'yellow', queuing: 'yellow', scheduled: 'yellow', unknown: 'yellow',
     REJECTED: 'red', failed: 'red', opted_out: 'red', PAUSED: 'red',
   }[status] || 'gray';
   return <span className={`badge ${color}`}>{status}</span>;

@@ -61,6 +61,8 @@ const contactSchema = new Schema(
   { timestamps: true }
 );
 contactSchema.index({ business: 1, phone: 1 }, { unique: true });
+// Campaign snapshots query "all contacts of business X in group Y".
+contactSchema.index({ business: 1, groups: 1 });
 
 const templateSchema = new Schema(
   {
@@ -79,6 +81,9 @@ const templateSchema = new Schema(
 );
 templateSchema.index({ business: 1, name: 1, language: 1 }, { unique: true });
 
+// Status flow: draft -> queuing -> sending -> completed (failed/cancelled aside).
+// "queuing" means the background prepare job is still creating Message rows
+// and queue jobs; no sends happen before it finishes stamping the campaign.
 const campaignSchema = new Schema(
   {
     business: { type: Schema.Types.ObjectId, ref: 'Business', required: true, index: true },
@@ -89,11 +94,13 @@ const campaignSchema = new Schema(
     variableMapping: { type: Map, of: String, default: {} },
     status: {
       type: String,
-      enum: ['draft', 'scheduled', 'sending', 'completed', 'failed', 'cancelled'],
+      enum: ['draft', 'scheduled', 'queuing', 'sending', 'completed', 'failed', 'cancelled'],
       default: 'draft',
     },
-    // Frozen at send time so later group edits never rewrite history.
-    recipientSnapshot: [{ type: Schema.Types.ObjectId, ref: 'Contact' }],
+    // NOTE: there is deliberately no recipient id array here. The "frozen
+    // snapshot" is the messages collection itself - one Message row per
+    // (campaign, contact) - because embedding hundreds of thousands of ids in
+    // one document hits MongoDB's 16MB document limit.
     stats: {
       total: { type: Number, default: 0 },
       skippedNoConsent: { type: Number, default: 0 },
@@ -132,24 +139,47 @@ const messageSchema = new Schema(
   },
   { timestamps: true }
 );
+// Report page filters + campaign stats aggregation group by (campaign, status).
+messageSchema.index({ campaign: 1, status: 1 });
+// Webhook status updates look messages up by wamid.
+messageSchema.index({ metaMessageId: 1 }, { sparse: true });
 
 const importJobSchema = new Schema(
   {
     business: { type: Schema.Types.ObjectId, ref: 'Business', required: true, index: true },
     filename: { type: String, required: true },
-    status: { type: String, enum: ['preview', 'confirmed', 'failed'], default: 'preview' },
+    status: { type: String, enum: ['preview', 'processing', 'confirmed', 'failed'], default: 'preview' },
     columnMapping: { type: Map, of: String, default: {} },
     stats: {
       totalRows: { type: Number, default: 0 },
       valid: { type: Number, default: 0 },
       duplicates: { type: Number, default: 0 },
       invalid: { type: Number, default: 0 },
+      imported: { type: Number, default: 0 },
     },
-    // Preview rows are stored only until confirm, then replaced by Contact docs.
-    previewRows: { type: [Schema.Types.Mixed], default: [] },
+    // Only a small sample stays on the job document. Full validated rows live
+    // in the importrows collection (one doc per row), so a 100k-row upload
+    // never approaches the 16MB document limit.
+    sampleRows: { type: [Schema.Types.Mixed], default: [] },
     errors: [{ row: Number, phone: String, reason: String }],
   },
   { timestamps: true, suppressReservedKeysWarning: true }
+);
+
+// Staging table for validated upload rows between preview and confirm.
+// Deleted after a successful confirm - raw uploads are not kept around.
+const importRowSchema = new Schema(
+  {
+    job: { type: Schema.Types.ObjectId, ref: 'ImportJob', required: true, index: true },
+    business: { type: Schema.Types.ObjectId, ref: 'Business', required: true, index: true },
+    row: { type: Number, default: 0 },
+    name: { type: String, default: '' },
+    phone: { type: String, required: true },
+    group: { type: String, default: '' },
+    optIn: { type: optInSchema, default: () => ({}) },
+    customFields: { type: Map, of: String, default: {} },
+  },
+  { timestamps: true }
 );
 
 // Hard block list: STOP replies and manual opt-outs land here and are checked
@@ -173,4 +203,5 @@ export const Template = model('Template', templateSchema);
 export const Campaign = model('Campaign', campaignSchema);
 export const Message = model('Message', messageSchema);
 export const ImportJob = model('ImportJob', importJobSchema);
+export const ImportRow = model('ImportRow', importRowSchema);
 export const Suppression = model('Suppression', suppressionSchema);

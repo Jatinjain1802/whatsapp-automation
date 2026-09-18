@@ -40,6 +40,8 @@ These are Meta platform rules, not optional features:
    (WABA ID, Phone Number ID, access token, webhook verify token).
 2. **Import** - Excel/CSV upload -> column mapping (name, phone, group, consent) ->
    phone normalization to E.164 (`libphonenumber-js`) -> invalid/duplicate preview -> confirm.
+   Validated rows are staged in their own collection and confirmed with chunked
+   bulk upserts, so a 100k-row file imports in seconds without blocking the API.
 3. **Groups** - imported customers land in dashboard segments (these are CRM segments,
    *not* WhatsApp groups).
 4. **Templates** - business drafts a template (`Hi {{1}}, your order {{2}} has been dispatched.`),
@@ -47,9 +49,10 @@ These are Meta platform rules, not optional features:
 5. **Campaign** - pick group + approved template -> map `{{1}}`-style variables to customer
    fields -> preview shows recipient count, no-consent exclusions and a rendered sample ->
    confirm send.
-6. **Sending** - backend freezes a recipient snapshot, creates one message record and one
-   BullMQ job per customer (idempotency key `campaignId:contactId` prevents duplicate sends),
-   workers call the Cloud API with rate limiting.
+6. **Sending** - confirm stamps the campaign `queuing` and returns immediately; a background
+   prepare job creates one message record and one BullMQ job per customer in bulk chunks
+   (idempotency key `campaignId:contactId` prevents duplicate sends even across crashes),
+   then rate-limited workers call the Cloud API.
 7. **Tracking** - Meta webhooks update sent/delivered/read/failed per recipient; the report
    page polls live and exports a failed CSV.
 8. **Opt-out** - an inbound `STOP` flips consent and adds the number to the suppression list,
@@ -63,7 +66,8 @@ Prereqs: Node 20+, Docker (for Mongo + Redis) or your own instances.
 docker compose up -d            # mongo + redis
 
 cd server
-cp .env.example .env            # fill in Meta credentials
+cp .env.example .env            # fill in Meta credentials (MONGODB_URI works with
+                                # local Docker Mongo or a MongoDB Atlas SRV string)
 npm install
 npm run dev                     # API on :4000
 npm run worker                  # second terminal: BullMQ send worker
@@ -97,8 +101,26 @@ npm run dev                     # dashboard on :5173 (proxies /api to :4000)
 ## Data model
 
 `businesses`, `users`, `contacts` (E.164 phone, opt-in record, groups, custom fields),
-`groups`, `templates` (Meta status), `campaigns` (frozen recipient snapshot + stats),
-`messages` (per-recipient status + idempotency key), `importJobs`, `suppressions`.
+`groups`, `templates` (Meta status), `campaigns` (stats; the `messages` collection is the
+frozen recipient snapshot), `messages` (per-recipient status + idempotency key),
+`importJobs` + `importRows` (staged uploads), `suppressions`.
+
+## Server architecture & scaling
+
+The backend is built for large uploads and large campaigns: heavy work is batched,
+idempotent, and runs in a worker process, never inside an HTTP request. See
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the component diagram, the import /
+campaign / webhook pipelines, index list, tuning knobs and the honest known-limits list.
+
+## Tests
+
+```bash
+cd server
+npm test        # unit + HTTP smoke + integration (real in-memory MongoDB, needs local Redis)
+```
+
+The integration test needs a Redis on `REDIS_URL` (default `redis://localhost:6379`);
+`docker compose up -d` provides one.
 
 ## Roadmap
 

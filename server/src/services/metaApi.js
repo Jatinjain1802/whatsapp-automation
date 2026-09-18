@@ -1,15 +1,25 @@
 import axios from 'axios';
+import http from 'http';
+import https from 'https';
 import { config } from '../config.js';
 
 // Thin client over the Meta WhatsApp Business Cloud API.
 // Docs: https://developers.facebook.com/docs/whatsapp/cloud-api/overview
 
+// One shared instance: keep-alive sockets mean thousands of sends reuse a
+// handful of TLS connections instead of paying a handshake per message.
+let client;
 function api() {
-  return axios.create({
-    baseURL: `https://graph.facebook.com/${config.meta.apiVersion}`,
-    headers: { Authorization: `Bearer ${config.meta.accessToken}` },
-    timeout: 15000,
-  });
+  if (!client) {
+    client = axios.create({
+      baseURL: `https://graph.facebook.com/${config.meta.apiVersion}`,
+      headers: { Authorization: `Bearer ${config.meta.accessToken}` },
+      timeout: 15000,
+      httpAgent: new http.Agent({ keepAlive: true, maxSockets: 50 }),
+      httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 50 }),
+    });
+  }
+  return client;
 }
 
 // Send a pre-approved template message. Business-initiated messages outside

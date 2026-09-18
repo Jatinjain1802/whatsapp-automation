@@ -45,7 +45,13 @@ export function createApp() {
   app.use('/api/templates', requireAuth, templateRoutes);
   app.use('/api/campaigns', requireAuth, campaignRoutes);
 
-  app.get('/health', (req, res) => res.json({ ok: true }));
+  // Liveness + readiness: reports the Mongo connection state so a load
+  // balancer can route around an API process that lost its database.
+  app.get('/health', async (req, res) => {
+    const { readyState } = (await import('mongoose')).default.connection;
+    const dbUp = readyState === 1;
+    res.status(dbUp ? 200 : 503).json({ ok: dbUp, db: readyState });
+  });
 
   // Central error handler - never leak stack traces to clients.
   // eslint-disable-next-line no-unused-vars
