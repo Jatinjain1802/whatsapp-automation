@@ -149,7 +149,7 @@ const importJobSchema = new Schema(
     previewRows: { type: [Schema.Types.Mixed], default: [] },
     errors: [{ row: Number, phone: String, reason: String }],
   },
-  { timestamps: true }
+  { timestamps: true, suppressReservedKeysWarning: true }
 );
 
 // Hard block list: STOP replies and manual opt-outs land here and are checked

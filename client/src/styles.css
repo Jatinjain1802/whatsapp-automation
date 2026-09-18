@@ -1,27 +1,1030 @@
-* { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f6f7f9; color: #1a1a1a; }
-.layout { display: flex; min-height: 100vh; }
-.sidebar { width: 220px; background: #111827; color: #fff; padding: 20px 14px; display: flex; flex-direction: column; gap: 6px; }
-.sidebar h1 { font-size: 18px; margin: 0 0 18px; }
-.sidebar a, .sidebar .link { color: #d1d5db; text-decoration: none; padding: 8px 10px; border-radius: 6px; background: none; border: none; text-align: left; font-size: 14px; cursor: pointer; }
-.sidebar a.active, .sidebar a:hover, .sidebar .link:hover { background: #1f2937; color: #fff; }
-.content { flex: 1; padding: 28px; max-width: 1000px; }
-.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; margin-bottom: 18px; }
-h2 { margin-top: 0; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
-input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; margin-bottom: 10px; }
-button { background: #2563eb; color: #fff; border: none; padding: 9px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; }
-button:disabled { background: #9ca3af; cursor: not-allowed; }
-button.secondary { background: #e5e7eb; color: #111827; }
-.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-.badge.green { background: #dcfce7; color: #166534; }
-.badge.yellow { background: #fef9c3; color: #854d0e; }
-.badge.red { background: #fee2e2; color: #991b1b; }
-.badge.gray { background: #e5e7eb; color: #374151; }
-.stats { display: flex; gap: 14px; flex-wrap: wrap; }
-.stat { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 20px; min-width: 120px; }
-.stat .num { font-size: 26px; font-weight: 700; }
-.stat .label { font-size: 12px; color: #6b7280; text-transform: uppercase; }
-.error { color: #b91c1c; font-size: 14px; }
-.preview { background: #f3f4f6; border-radius: 8px; padding: 14px; white-space: pre-wrap; font-size: 14px; }
+/* ==========================================================================
+   DESIGN TOKENS (CSS Custom Properties)
+   -----------------------------------------------------------------------
+   Why variables?  Change ONE value here and it updates everywhere.
+   For example, swap --color-primary and your entire accent color changes.
+   ========================================================================== */
+
+:root {
+  /* ── Brand / accent ────────────────────────────────────────────────── */
+  --color-primary: #25D366;          /* WhatsApp green                  */
+  --color-primary-dark: #128C7E;     /* Deeper green for gradients      */
+  --color-primary-glow: rgba(37, 211, 102, 0.25);
+
+  /* ── Surfaces (dark theme) ─────────────────────────────────────────── */
+  --color-bg: #0f1117;              /* Page background                  */
+  --color-surface: rgba(26, 29, 41, 0.7);   /* Card background (semi-transparent for glassmorphism) */
+  --color-surface-solid: #1a1d29;   /* Solid fallback                   */
+  --color-surface-hover: rgba(35, 39, 55, 0.8);
+  --color-sidebar: #111420;
+  --color-sidebar-hover: rgba(37, 211, 102, 0.08);
+  --color-sidebar-active: rgba(37, 211, 102, 0.14);
+
+  /* ── Text ──────────────────────────────────────────────────────────── */
+  --color-text: #e8eaed;
+  --color-text-secondary: #9aa0ab;
+  --color-text-muted: #5f6574;
+
+  /* ── Borders ───────────────────────────────────────────────────────── */
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-focus: rgba(37, 211, 102, 0.5);
+
+  /* ── Status colors ─────────────────────────────────────────────────── */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #60a5fa;
+
+  /* ── Spacing & sizing ──────────────────────────────────────────────── */
+  --sidebar-width: 260px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* ── Shadows ───────────────────────────────────────────────────────── */
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.25);
+  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 20px var(--color-primary-glow);
+
+  /* ── Transitions ───────────────────────────────────────────────────── */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration: 0.2s;
+}
+
+
+/* ==========================================================================
+   RESET & BASE
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  /* Smooth scrolling when clicking anchor links */
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;  /* Smoother text on Mac */
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* ==========================================================================
+   CUSTOM SCROLLBAR — dark themed
+   Browsers like Chrome/Edge support ::-webkit-scrollbar
+   ========================================================================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+
+/* ==========================================================================
+   ANIMATIONS (keyframes)
+   -----------------------------------------------------------------------
+   @keyframes defines a reusable animation.
+   We apply it with the `animation` shorthand property.
+   ========================================================================== */
+
+/* Cards and content fade in + slide up on page load */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Subtle pulse for the active nav indicator */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 8px var(--color-primary-glow); }
+  50% { box-shadow: 0 0 16px var(--color-primary-glow); }
+}
+
+
+/* ==========================================================================
+   LAYOUT — sidebar + main content
+   ========================================================================== */
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+
+/* ==========================================================================
+   SIDEBAR
+   ========================================================================== */
+
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--color-sidebar);
+  /* Subtle gradient on the left edge */
+  border-right: 1px solid var(--color-border);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: fixed;          /* Sidebar stays in place while content scrolls */
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+/* Brand header in sidebar */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px 20px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sidebar-brand .brand-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-brand .brand-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: white;
+}
+
+.sidebar-brand h1 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.3px;
+}
+
+/* Nav links in sidebar */
+.sidebar a,
+.sidebar .link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  /* transition makes hover effects smooth instead of instant */
+  transition: all var(--duration) var(--ease);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar a svg,
+.sidebar .link svg {
+  width: 18px;
+  height: 18px;
+  opacity: 0.6;
+  flex-shrink: 0;
+  transition: opacity var(--duration) var(--ease);
+}
+
+.sidebar a:hover,
+.sidebar .link:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text);
+}
+
+.sidebar a:hover svg,
+.sidebar .link:hover svg {
+  opacity: 1;
+}
+
+/* .active class is added by React Router's NavLink automatically */
+.sidebar a.active {
+  background: var(--color-sidebar-active);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.sidebar a.active svg {
+  opacity: 1;
+  fill: var(--color-primary);
+}
+
+/* Spacer pushes logout to the bottom */
+.sidebar-spacer {
+  flex: 1;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 8px 0;
+}
+
+.sidebar .link.logout-btn {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.sidebar .link.logout-btn:hover {
+  color: var(--color-error);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+
+/* ==========================================================================
+   MAIN CONTENT
+   ========================================================================== */
+
+.content {
+  flex: 1;
+  margin-left: var(--sidebar-width); /* Offset for fixed sidebar */
+  padding: 32px 36px;
+  max-width: calc(1080px + var(--sidebar-width));
+  min-height: 100vh;
+}
+
+/* Page wrapper — each page's content fades in */
+.page {
+  animation: fadeSlideIn 0.4s var(--ease) both;
+}
+
+
+/* ==========================================================================
+   PAGE HEADER
+   ========================================================================== */
+
+.page-header {
+  margin-bottom: 28px;
+}
+
+.page-header h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.page-header p {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin-top: 6px;
+  max-width: 640px;
+  line-height: 1.6;
+}
+
+
+/* ==========================================================================
+   CARDS — glassmorphism
+   -----------------------------------------------------------------------
+   backdrop-filter: blur() blurs whatever is BEHIND the element.
+   Combined with a semi-transparent background, this creates the
+   "frosted glass" effect known as glassmorphism.
+   ========================================================================== */
+
+.card {
+  background: var(--color-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); /* Safari support */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-card);
+  /* Smooth lift on hover */
+  transition: transform var(--duration) var(--ease),
+              box-shadow var(--duration) var(--ease);
+  animation: fadeSlideIn 0.4s var(--ease) both;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--color-text);
+}
+
+
+/* ==========================================================================
+   TYPOGRAPHY
+   ========================================================================== */
+
+h2 {
+  margin-top: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+
+/* ==========================================================================
+   TABLES
+   ========================================================================== */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+thead th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  transition: background var(--duration) var(--ease);
+}
+
+/* Striped rows — every other row gets a subtle tint */
+tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Row hover highlight */
+tbody tr:hover td {
+  background: rgba(37, 211, 102, 0.04);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Links inside tables */
+table a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--duration) var(--ease);
+}
+
+table a:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+
+/* ==========================================================================
+   FORM INPUTS
+   -----------------------------------------------------------------------
+   :focus-visible  — only shows the focus ring when the user navigates
+   with the keyboard (Tab key), NOT when they click with a mouse.
+   This gives a cleaner UX for mouse users.
+   ========================================================================== */
+
+input, select, textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text);
+  margin-bottom: 12px;
+  transition: border-color var(--duration) var(--ease),
+              box-shadow var(--duration) var(--ease);
+  outline: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
+}
+
+/* File input special styling */
+input[type="file"] {
+  padding: 12px;
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-right: 12px;
+  transition: opacity var(--duration) var(--ease);
+}
+
+input[type="file"]::file-selector-button:hover {
+  opacity: 0.9;
+}
+
+select {
+  cursor: pointer;
+  /* Custom dropdown arrow */
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239aa0ab' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+/* When a label wraps an input (compound label) */
+label select,
+label input {
+  margin-top: 6px;
+}
+
+
+/* ==========================================================================
+   BUTTONS
+   ========================================================================== */
+
+button {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform var(--duration) var(--ease),
+              box-shadow var(--duration) var(--ease),
+              opacity var(--duration) var(--ease);
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button:disabled {
+  background: var(--color-text-muted);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+button.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+button.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+  box-shadow: none;
+}
+
+button.danger {
+  background: linear-gradient(135deg, var(--color-error), #dc2626);
+}
+
+button.danger:hover {
+  box-shadow: 0 0 20px rgba(248, 113, 113, 0.25);
+}
+
+
+/* ==========================================================================
+   BADGES / PILLS
+   ========================================================================== */
+
+.badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: capitalize;
+}
+
+.badge.green {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--color-success);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.1);
+}
+
+.badge.yellow {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--color-warning);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.1);
+}
+
+.badge.red {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--color-error);
+  box-shadow: 0 0 12px rgba(248, 113, 113, 0.1);
+}
+
+.badge.gray {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-muted);
+}
+
+
+/* ==========================================================================
+   STATS CARDS
+   ========================================================================== */
+
+.stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  background: var(--color-surface);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 18px 24px;
+  min-width: 130px;
+  flex: 1;
+  /* Colored top border — adds a subtle accent */
+  border-top: 3px solid var(--color-primary);
+  transition: transform var(--duration) var(--ease),
+              box-shadow var(--duration) var(--ease);
+}
+
+.stat:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.stat .num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.5px;
+}
+
+.stat .label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Stat color variants — used in CampaignReport */
+.stat.stat-success { border-top-color: var(--color-success); }
+.stat.stat-warning { border-top-color: var(--color-warning); }
+.stat.stat-error   { border-top-color: var(--color-error); }
+.stat.stat-info    { border-top-color: var(--color-info); }
+
+
+/* ==========================================================================
+   ERROR TEXT
+   ========================================================================== */
+
+.error {
+  color: var(--color-error);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.error::before {
+  content: '⚠';
+  font-size: 16px;
+}
+
+
+/* ==========================================================================
+   PREVIEW BLOCK (template / message preview)
+   ========================================================================== */
+
+.preview {
+  background: rgba(37, 211, 102, 0.06);
+  border: 1px solid rgba(37, 211, 102, 0.15);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  white-space: pre-wrap;
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 1.6;
+  position: relative;
+}
+
+/* Chat bubble tail */
+.preview::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: -8px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid rgba(37, 211, 102, 0.15);
+}
+
+
+/* ==========================================================================
+   LOGIN PAGE
+   ========================================================================== */
+
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Gradient background behind the login card */
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(37, 211, 102, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(18, 140, 126, 0.06) 0%, transparent 50%),
+    var(--color-bg);
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  animation: fadeSlideIn 0.5s var(--ease) both;
+}
+
+.login-card .card {
+  padding: 40px;
+}
+
+.login-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.login-logo .logo-circle {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-glow);
+}
+
+.login-logo .logo-circle svg {
+  width: 28px;
+  height: 28px;
+  fill: white;
+}
+
+.login-logo h2 {
+  font-size: 22px;
+  text-align: center;
+}
+
+.login-toggle {
+  text-align: center;
+  margin-top: 16px;
+}
+
+
+/* ==========================================================================
+   STEP INDICATOR (Import page wizard)
+   ========================================================================== */
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 28px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  transition: color var(--duration) var(--ease);
+}
+
+.step.active {
+  color: var(--color-primary);
+}
+
+.step.done {
+  color: var(--color-success);
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all var(--duration) var(--ease);
+}
+
+.step.active .step-number {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: white;
+}
+
+.step.done .step-number {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: white;
+}
+
+.step-connector {
+  width: 40px;
+  height: 2px;
+  background: var(--color-border);
+  margin: 0 8px;
+}
+
+.step-connector.done {
+  background: var(--color-success);
+}
+
+
+/* ==========================================================================
+   FILE DROP ZONE
+   ========================================================================== */
+
+.drop-zone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 40px 24px;
+  text-align: center;
+  transition: border-color var(--duration) var(--ease),
+              background var(--duration) var(--ease);
+  cursor: pointer;
+}
+
+.drop-zone:hover {
+  border-color: var(--color-primary);
+  background: rgba(37, 211, 102, 0.04);
+}
+
+.drop-zone.has-file {
+  border-color: var(--color-primary);
+  border-style: solid;
+  background: rgba(37, 211, 102, 0.06);
+}
+
+.drop-zone svg {
+  width: 40px;
+  height: 40px;
+  fill: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.drop-zone p {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.drop-zone .file-name {
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+
+/* ==========================================================================
+   EMPTY STATE
+   ========================================================================== */
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--color-text-muted);
+}
+
+.empty-state svg {
+  width: 56px;
+  height: 56px;
+  fill: var(--color-text-muted);
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 15px;
+  max-width: 400px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+
+/* ==========================================================================
+   DETAILS / SUMMARY (collapsible sections)
+   ========================================================================== */
+
+details {
+  margin-top: 12px;
+}
+
+summary {
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: color var(--duration) var(--ease);
+}
+
+summary:hover {
+  color: var(--color-text);
+}
+
+details ul {
+  margin-top: 8px;
+  padding-left: 20px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+details li {
+  margin-bottom: 4px;
+}
+
+
+/* ==========================================================================
+   INLINE FORM ROW (Groups page create form)
+   ========================================================================== */
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.form-row input {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.form-row button {
+  flex-shrink: 0;
+  padding: 10px 24px;
+}
+
+
+/* ==========================================================================
+   FILTER BAR (Campaign report)
+   ========================================================================== */
+
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.filter-bar select {
+  max-width: 200px;
+  margin-bottom: 0;
+}
+
+.filter-bar button {
+  white-space: nowrap;
+}
+
+
+/* ==========================================================================
+   RESPONSIVE — collapse sidebar on small screens
+   -----------------------------------------------------------------------
+   @media queries let you apply CSS only when the screen size matches.
+   Here, screens narrower than 768px get a top-bar instead of a sidebar.
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    width: 100%;
+    height: auto;
+    bottom: 0;
+    top: auto;
+    left: 0;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 2px;
+    padding: 8px 12px;
+    border-right: none;
+    border-top: 1px solid var(--color-border);
+    z-index: 200;
+  }
+
+  .sidebar-brand,
+  .sidebar-spacer,
+  .sidebar-divider {
+    display: none;
+  }
+
+  /* Hide text labels on mobile, only show icons */
+  .sidebar a span,
+  .sidebar .link span {
+    display: none;
+  }
+
+  .sidebar a, .sidebar .link {
+    padding: 10px;
+    justify-content: center;
+  }
+
+  .content {
+    margin-left: 0;
+    padding: 20px 16px 80px; /* bottom padding for mobile nav bar */
+  }
+}
