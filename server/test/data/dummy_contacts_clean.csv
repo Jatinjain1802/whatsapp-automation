@@ -1,0 +1,11 @@
+Name,Phone,Consent,Group,City,Order_ID,Amount
+Rahul Sharma,+919876543210,YES,VIP Customers,Mumbai,ORD-1001,2500
+Priya Patel,+919812345678,YES,Recent Buyers,Ahmedabad,ORD-1002,4999
+Amit Kumar,+919988776655,YES,VIP Customers,Delhi,ORD-1003,1250
+Sneha Gupta,+919711223344,YES,Festival Offer 2026,Bangalore,ORD-1004,8900
+Vikram Singh,+919655443322,YES,New Leads,Jaipur,ORD-1005,1500
+Ananya Roy,+919544332211,YES,Recent Buyers,Kolkata,ORD-1006,3200
+Rohan Verma,+919433221100,YES,VIP Customers,Pune,ORD-1007,7500
+Kavya Iyer,+919322110099,YES,Festival Offer 2026,Chennai,ORD-1008,6100
+Siddharth Mehta,+919211009988,YES,New Leads,Hyderabad,ORD-1009,2100
+Pooja Joshi,+919100998877,YES,Recent Buyers,Surat,ORD-1010,4300

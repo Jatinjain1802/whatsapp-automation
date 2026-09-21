@@ -513,6 +513,18 @@ label input {
   margin-top: 6px;
 }
 
+/* Flexbox form row layout for inline inputs */
+.form-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.form-row input,
+.form-row select {
+  flex: 1;
+}
+
 
 /* ==========================================================================
    BUTTONS

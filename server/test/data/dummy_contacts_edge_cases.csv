@@ -1,0 +1,9 @@
+Name,Phone,Consent,Group,City,Order_ID,Notes
+Arjun Nair,9876543211,YES,VIP Customers,Kochi,ORD-2001,Valid local Indian format without plus prefix
+Neha Sharma,9812345678,NO,Recent Buyers,Delhi,ORD-2002,No consent record - should be skipped/flagged
+Invalid User,12345,YES,New Leads,Unknown,ORD-2003,Invalid phone number length
+Duplicate User,+919876543210,YES,VIP Customers,Mumbai,ORD-2004,Duplicate phone number matching clean dataset
+Karan Malhotra,+14155552671,TRUE,VIP Customers,San Francisco,ORD-2005,Valid US E.164 phone format
+Deepak Verma,09876543212,YES,Festival Offer 2026,Lucknow,ORD-2006,Number with leading zero
+No Name Contact,+919899001122,YES,New Leads,Chandigarh,ORD-2007,Missing custom fields test
+Opted Out User,+919788990011,FALSE,Inactive Users,Indore,ORD-2008,Explicitly opted out contact

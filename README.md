@@ -43,7 +43,7 @@ These are Meta platform rules, not optional features:
    Validated rows are staged in their own collection and confirmed with chunked
    bulk upserts, so a 100k-row file imports in seconds without blocking the API.
 3. **Groups** - imported customers land in dashboard segments (these are CRM segments,
-   *not* WhatsApp groups).
+   _not_ WhatsApp groups).
 4. **Templates** - business drafts a template (`Hi {{1}}, your order {{2}} has been dispatched.`),
    submits it to Meta, waits for approval.
 5. **Campaign** - pick group + approved template -> map `{{1}}`-style variables to customer
@@ -80,7 +80,7 @@ npm run dev                     # dashboard on :5173 (proxies /api to :4000)
 ### Getting Meta credentials (free test tier)
 
 1. Create an app at https://developers.facebook.com/apps and add the **WhatsApp** product.
-2. In *WhatsApp > API setup* you get a **test phone number**, a temporary access token,
+2. In _WhatsApp > API setup_ you get a **test phone number**, a temporary access token,
    the WABA ID and Phone Number ID. Test numbers can message up to 5 verified recipient
    numbers for free - enough to run the whole flow end to end.
 3. Webhooks: expose your server (e.g. `ngrok http 4000`) and subscribe
@@ -88,15 +88,15 @@ npm run dev                     # dashboard on :5173 (proxies /api to :4000)
 
 ## API surface
 
-| Route | Purpose |
-| --- | --- |
-| `POST /api/auth/register`, `POST /api/auth/login` | JWT auth |
-| `POST /api/imports/headers` / `preview` / `:id/confirm` | Excel import pipeline |
-| `GET/POST/DELETE /api/groups` | Segments |
-| `GET /api/contacts`, `POST /api/contacts/:id/opt-in|opt-out` | Contacts + consent |
-| `GET/POST /api/templates`, `POST /:id/submit`, `POST /sync` | Template lifecycle with Meta |
-| `GET/POST /api/campaigns`, `GET /:id/preview`, `POST /:id/send`, `GET /:id/messages` | Campaigns + reports |
-| `GET/POST /webhooks/whatsapp` | Meta verification + status/inbound events |
+| Route                                                                                | Purpose                                   |
+| ------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------ |
+| `POST /api/auth/register`, `POST /api/auth/login`                                    | JWT auth                                  |
+| `POST /api/imports/headers` / `preview` / `:id/confirm`                              | Excel import pipeline                     |
+| `GET/POST/DELETE /api/groups`                                                        | Segments                                  |
+| `GET /api/contacts`, `POST /api/contacts/:id/opt-in                                  | opt-out`                                  | Contacts + consent |
+| `GET/POST /api/templates`, `POST /:id/submit`, `POST /sync`                          | Template lifecycle with Meta              |
+| `GET/POST /api/campaigns`, `GET /:id/preview`, `POST /:id/send`, `GET /:id/messages` | Campaigns + reports                       |
+| `GET/POST /webhooks/whatsapp`                                                        | Meta verification + status/inbound events |
 
 ## Data model
 
@@ -137,3 +137,6 @@ The integration test needs a Redis on `REDIS_URL` (default `redis://localhost:63
 - Never commit `.env` or any real customer list. `.gitignore` covers both.
 - Utility vs Marketing templates have different Meta approval bars and per-message pricing -
   pick the category that matches the actual content.
+
+  Email: demo@example.com
+  Password: password123
