@@ -22,12 +22,43 @@
   4. useEffect CLEANUP — The function returned from useEffect is called
      when the component unmounts OR before the effect re-runs. This is
      where you clean up timers, event listeners, or subscriptions.
+
+  5. React-Select:
+     - A flexible dropdown/select library for React.
+     - Unlike standard HTML <select> which works with simple strings,
+       React-Select works with objects in the shape: { value: '...', label: '...' }.
+     - The `value` prop expects the selected object, not just a string value.
+     - The `onChange` callback passes the selected option object back:
+       (selectedOption) => setFilter(selectedOption ? selectedOption.value : '').
+     - Uses the `styles` prop for deep customization to match dark mode.
 */
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import Select from 'react-select';
 import { api } from '../api.js';
+import { selectStyles } from '../selectStyles.js';
 import { StatusBadge } from './Dashboard.jsx';
+
+// Status options formatted for react-select: { value, label }
+const STATUS_OPTIONS = [
+  { value: '', label: 'All statuses' },
+  { value: 'queued', label: 'Queued' },
+  { value: 'sent', label: 'Sent' },
+  { value: 'delivered', label: 'Delivered' },
+  { value: 'read', label: 'Read' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'skipped', label: 'Skipped' },
+];
+
+// In the filter bar, we don't need the bottom margin that standard form inputs have
+const filterSelectStyles = {
+  ...selectStyles,
+  control: (base, state) => ({
+    ...selectStyles.control(base, state),
+    marginBottom: 0,
+  }),
+};
 
 export default function CampaignReport() {
   const { id } = useParams();
@@ -121,12 +152,16 @@ export default function CampaignReport() {
       <div className="card">
         {/* Filter bar */}
         <div className="filter-bar">
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="">All statuses</option>
-            {['queued', 'sent', 'delivered', 'read', 'failed', 'skipped'].map((st) => (
-              <option key={st} value={st}>{st}</option>
-            ))}
-          </select>
+          <div style={{ minWidth: 200 }}>
+            <Select
+              options={STATUS_OPTIONS}
+              value={STATUS_OPTIONS.find((opt) => opt.value === filter) || STATUS_OPTIONS[0]}
+              onChange={(selected) => setFilter(selected ? selected.value : '')}
+              styles={filterSelectStyles}
+              isSearchable={false}
+              aria-label="Filter by status"
+            />
+          </div>
           <button className="secondary" onClick={exportFailedCsv}>
             Export failed CSV
           </button>

@@ -20,11 +20,26 @@
      
   4. useNavigate — React Router hook that returns a function to
      programmatically navigate to a different route (instead of <Link>).
+
+  5. React-Select for dynamic forms — Replacing native <select> with
+     React-Select provides searchable dropdowns, clean dark-theme styling,
+     and objects with { value, label } format.
 */
 
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Select from 'react-select';
 import { api } from '../api.js';
+import { selectStyles } from '../selectStyles.js';
+
+// Available fields to map template variables to
+const FIELD_OPTIONS = [
+  { value: 'name', label: 'Customer name' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'customFields.orderId', label: 'Custom: orderId' },
+  { value: 'customFields.amount', label: 'Custom: amount' },
+  { value: 'customFields.date', label: 'Custom: date' },
+];
 
 export default function NewCampaign() {
   const navigate = useNavigate();
@@ -46,6 +61,17 @@ export default function NewCampaign() {
       .catch(() => {});
   }, []);
 
+  // Format options for react-select: { value, label }
+  const groupOptions = useMemo(
+    () => groups.map((g) => ({ value: g._id, label: `${g.name} (${g.contactCount})` })),
+    [groups]
+  );
+
+  const templateOptions = useMemo(
+    () => templates.map((t) => ({ value: t._id, label: `${t.name} (${t.category})` })),
+    [templates]
+  );
+
   // Find the selected template object from the array
   const template = useMemo(
     () => templates.find((t) => t._id === templateId),
@@ -64,6 +90,23 @@ export default function NewCampaign() {
   async function createDraft(e) {
     e.preventDefault();
     setError('');
+
+    // Form validation before submitting draft
+    if (!groupId) {
+      setError('Please select a target group');
+      return;
+    }
+    if (!templateId) {
+      setError('Please select an approved template');
+      return;
+    }
+    for (const v of variables) {
+      if (!mapping[v]) {
+        setError(`Please map variable {{${v}}}`);
+        return;
+      }
+    }
+
     try {
       // Step 1: Create the campaign as a draft
       const { data } = await api.post('/campaigns', {
@@ -110,44 +153,51 @@ export default function NewCampaign() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label>Target group</label>
-                <select value={groupId} onChange={(e) => setGroupId(e.target.value)} required>
-                  <option value="">Select group</option>
-                  {groups.map((g) => (
-                    <option key={g._id} value={g._id}>{g.name} ({g.contactCount})</option>
-                  ))}
-                </select>
+                <label style={{ display: 'block', marginBottom: 6 }}>Target group</label>
+                <Select
+                  options={groupOptions}
+                  value={groupOptions.find((g) => g.value === groupId) || null}
+                  onChange={(selected) => setGroupId(selected ? selected.value : '')}
+                  placeholder="Select group"
+                  styles={selectStyles}
+                  isClearable
+                />
               </div>
               <div>
-                <label>Approved template</label>
-                <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} required>
-                  <option value="">Select template</option>
-                  {templates.map((t) => (
-                    <option key={t._id} value={t._id}>{t.name} ({t.category})</option>
-                  ))}
-                </select>
+                <label style={{ display: 'block', marginBottom: 6 }}>Approved template</label>
+                <Select
+                  options={templateOptions}
+                  value={templateOptions.find((t) => t.value === templateId) || null}
+                  onChange={(selected) => setTemplateId(selected ? selected.value : '')}
+                  placeholder="Select template"
+                  styles={selectStyles}
+                  isClearable
+                />
               </div>
             </div>
 
             {/* Variable mapping — only shown when template has {{variables}} */}
             {variables.length > 0 && (
               <>
-                <h4 style={{ marginTop: 20 }}>Map variables</h4>
+                <h4 style={{ marginTop: 20, marginBottom: 12 }}>Map variables</h4>
                 {variables.map((v) => (
                   <label key={v} style={{ display: 'block', marginBottom: 12 }}>
-                    {'{{' + v + '}}'}
-                    <select
-                      value={mapping[v] || ''}
-                      onChange={(e) => setMapping({ ...mapping, [v]: e.target.value })}
-                      required
-                    >
-                      <option value="">Select field</option>
-                      <option value="name">Customer name</option>
-                      <option value="phone">Phone</option>
-                      <option value="customFields.orderId">Custom: orderId</option>
-                      <option value="customFields.amount">Custom: amount</option>
-                      <option value="customFields.date">Custom: date</option>
-                    </select>
+                    <span style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>
+                      {'{{' + v + '}}'}
+                    </span>
+                    <Select
+                      options={FIELD_OPTIONS}
+                      value={FIELD_OPTIONS.find((f) => f.value === mapping[v]) || null}
+                      onChange={(selected) =>
+                        setMapping((prev) => ({
+                          ...prev,
+                          [v]: selected ? selected.value : '',
+                        }))
+                      }
+                      placeholder="Select field"
+                      styles={selectStyles}
+                      isClearable
+                    />
                   </label>
                 ))}
               </>

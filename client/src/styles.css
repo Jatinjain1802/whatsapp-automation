@@ -451,6 +451,12 @@ input, select, textarea {
   outline: none;
 }
 
+/* Fix native dropdown options in dark theme (prevents white-on-white text in Chromium) */
+select option {
+  background-color: var(--color-surface-solid);
+  color: var(--color-text);
+}
+
 input::placeholder,
 textarea::placeholder {
   color: var(--color-text-muted);
@@ -1040,3 +1046,124 @@ details li {
     padding: 20px 16px 80px; /* bottom padding for mobile nav bar */
   }
 }
+
+/* ==========================================================================
+   MODAL DIALOG & CONTACT MANAGMENT STYLES
+   ========================================================================== */
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 12, 18, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeSlideIn 0.25s var(--ease) both;
+}
+
+.modal-dialog {
+  background: #181b26;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 580px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+}
+
+.modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.search-filter-box {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.search-filter-box input {
+  margin-bottom: 0;
+  padding-left: 36px;
+}
+
+.search-filter-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  fill: var(--color-text-muted);
+}
+
+.contact-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  margin-bottom: 6px;
+  transition: background var(--duration) var(--ease);
+}
+
+.contact-picker-item:hover {
+  background: rgba(37, 211, 102, 0.05);
+}
+
+.contact-picker-item.selected {
+  background: rgba(37, 211, 102, 0.1);
+  border-color: rgba(37, 211, 102, 0.3);
+}
+
